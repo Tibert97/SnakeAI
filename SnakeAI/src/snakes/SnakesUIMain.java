@@ -17,6 +17,8 @@ public class SnakesUIMain {
      * UI Entry point
      * @param args Two classes implementing the Bot interface
      * @throws InterruptedException Threads handler
+     * 
+     * 
      * @throws IOException  FileWriter handler
      */
     public static void main(String[] args) throws InterruptedException, IOException {
@@ -31,7 +33,7 @@ public class SnakesUIMain {
         bots.add(loader.getBotClass(args[0]));
         bots.add(loader.getBotClass(args[1]));
 
-        start_tournament_n_times(5, bots);
+        start_tournament_n_times(1, bots);
     }
 
     /**
@@ -57,7 +59,8 @@ public class SnakesUIMain {
         results_fw = new FileWriter(String.format("%s\\total.txt", LOG_DIRECTORY_PATH), false);
         for (int i = 0; i < bots.size(); i++)
             for (int j = i + 1; j < bots.size(); j++) {
-                if (bots.get(i) == null || bots.get(j) == null) continue;
+                if 
+                (bots.get(i) == null || bots.get(j) == null) continue;
                 System.out.println("\n" + bots.get(i).getClass().getSimpleName() + " vs. " + bots.get(j).getClass().getSimpleName() + ": " + total_results_table[i][j] + " - " + total_results_table[j][i]);
                 results_fw.write(bots.get(i).getClass().getSimpleName() + " vs. " + bots.get(j).getClass().getSimpleName() + ": " + total_results_table[i][j] + " - " + total_results_table[j][i] + "\n");
             }

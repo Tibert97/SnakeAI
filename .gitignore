@@ -9,3 +9,6 @@ production/
 *.iws
 logs
 *.class
+SnakeAI/bin/snakes/SnakesUIMain.class
+SnakeAI/bin/Zischelbot/Zischelbot.class
+SnakeAI/bin/Zischelbot/Zischelbot$Game_Tree.class

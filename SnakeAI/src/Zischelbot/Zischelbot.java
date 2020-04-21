@@ -44,7 +44,7 @@ public class Zischelbot implements Bot {
 
         private Game_Tree maximum_upper_confidence_bound(ArrayList<Game_Tree> children){
             double upper_confidence_bound = 0;
-            Game_Tree best_child = null;
+            Game_Tree best_child = children.get(0);
             for (Game_Tree child : children) {
                 if(child.upper_confidence_bound() > upper_confidence_bound){
                     upper_confidence_bound = child.upper_confidence_bound();
@@ -120,17 +120,18 @@ public class Zischelbot implements Bot {
         public Game_Tree selection(){
             Game_Tree selected_node = this;
             while(selected_node.children != null){
-                selected_node = maximum_upper_confidence_bound(this.children);
+                selected_node = maximum_upper_confidence_bound(selected_node.children);
             }
             return selected_node;
         }
 
-        public void expansion(){
+        public Game_Tree expansion(){
             this.children = new ArrayList<Game_Tree>();
             for (Direction d : valid_moves(this.root.player)) {
                 Game_Tree tmp_tree = new Game_Tree(do_action_copied(this.root,d,this.root.player),this,this.turn*-1,d);
                 this.children.add(tmp_tree);
             }
+            return children.get(0);
 
         }
 
@@ -186,14 +187,14 @@ public class Zischelbot implements Bot {
         Board root_board = new Board(snake,opponent,mazeSize,apple);
         Game_Tree root = new Game_Tree(root_board,null,1,null);
         long start = System.currentTimeMillis();
-        while(start - System.currentTimeMillis() > 0.7){
+        while(System.currentTimeMillis() - start < 800){
             Game_Tree current = root.selection();
             if(current.visited == 0){
                 int result = current.rollout();
                 current.backpropagation(result);
             }
             else{
-                current.expansion();
+                current = current.expansion();
                 int result = current.rollout();
                 current.backpropagation(result);
             }
