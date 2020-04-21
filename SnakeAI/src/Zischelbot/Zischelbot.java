@@ -32,12 +32,16 @@ public class Zischelbot implements Bot {
         ArrayList<Game_Tree> children;
         int visited;
         int value;
-        public Game_Tree(Board board, Game_Tree parent){
+        Direction last_action;
+        int turn;
+        public Game_Tree(Board board, Game_Tree parent, int turn, Direction last_action){
             this.root = board;
             this.children = null;
             this.parent = parent;
             this.visited = 0;
             this.value = 0;
+            this.turn = turn;
+            this.last_action = last_action;
         }
 
         private Game_Tree maximum_upper_confidence_bound(ArrayList<Game_Tree> children){
@@ -82,31 +86,32 @@ public class Zischelbot implements Bot {
         }
 
         public void expansion(){
-            this.children = new Game_Tree[3];
+            this.children = new ArrayList<Game_Tree>();
             for (Direction d : valid_moves(this.root.player)) {
-                tmp_tree = new Game_Tree()
-                this.children.add(n)
+                Game_Tree tmp_tree = new Game_Tree(do_action_copied(this.root,d),this,this.turn*-1,d);
+                this.children.add(tmp_tree);
             }
 
         }
 
+        public int rollout(){
+            int turn = this.turn;
+            Board board = this.root;
+            while(reward_of_state(board) == 0){
+                Direction random_action = valid_moves(this.root.player)[(int)(Math.random()*3)];
+                board = do_action(board,random_action);
+            }
+            return reward_of_state(board,this.root.player);
+        }
 
-        def expansion(self,possible_actions,do_action_copied):
-        self.children = list()
-        if self.ultimate:
-            if self.done_action:
-                for action in possible_actions(self.root,self.done_action[1]):
-                    self.children.append(game_tree(do_action_copied(self.root,action,self.next_turn),self.marker,self,action,self.next_turn*-1,self.ultimate))
-            else:
-                for action in possible_actions(self.root,None):
-                    self.children.append(game_tree(do_action_copied(self.root,action,self.next_turn),self.marker,self,action,self.next_turn*-1,self.ultimate))
-        else:
-            for action in possible_actions(self.root):
-                self.children.append(game_tree(do_action_copied(self.root,action,self.next_turn),self.marker,self,action,self.next_turn*-1,self.ultimate))
-        if self.children:
-            return random.choice(self.children)
-        else:
-            return self
+        public void backpropagation(int reward){
+            Game_Tree current = this;
+            while(current != null){
+                current.visited += 1;
+                current.value += reward;
+                current = current.parent;
+            }
+        }
 
         private double upper_confidence_bound(){
             if(this.visited == 0){
@@ -115,7 +120,27 @@ public class Zischelbot implements Bot {
             else{
                 return this.value/this.visited + Math.sqrt(2)* Math.sqrt(Math.log(this.parent.visited)/this.visited);
             }
-    }
+        }
+
+        public Direction monte_carlo_tree_search(Snake snake, Snake opponent, Coordinate mazeSize, Coordinate apple){
+            
+        }
+
+        def monte_carlo_tree_search(state,marker,reward_of_state,possible_actions,do_action,do_action_copied,max_time,ultimate,last_action):
+            root = game_tree(state,marker,None,last_action,marker,ultimate)
+            start = time.time()
+            while time.time() - start < max_time:
+                child = root.selection()
+                if child.visited == 0:
+                    res = child.rollout(reward_of_state,possible_actions,do_action)
+                    child.backpropagation(res)
+                else:
+                    child = child.expansion(possible_actions,do_action_copied)
+                    res = child.rollout(reward_of_state,possible_actions,do_action)
+                    child.backpropagation(res)
+            print(root.visited)
+            return max(root.children, key = lambda c: c.visited).done_action
+
     private static final Direction[] DIRECTIONS = new Direction[]{Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT};
 
     private double euclidian_distance(Coordinate a, Coordinate b){
@@ -168,77 +193,4 @@ public class Zischelbot implements Bot {
         else return validMoves[0];
         /* Cannot avoid losing here */
     }
-
-
-    
-    def expansion(self,possible_actions,do_action_copied):
-        self.children = list()
-        if self.ultimate:
-            if self.done_action:
-                for action in possible_actions(self.root,self.done_action[1]):
-                    self.children.append(game_tree(do_action_copied(self.root,action,self.next_turn),self.marker,self,action,self.next_turn*-1,self.ultimate))
-            else:
-                for action in possible_actions(self.root,None):
-                    self.children.append(game_tree(do_action_copied(self.root,action,self.next_turn),self.marker,self,action,self.next_turn*-1,self.ultimate))
-        else:
-            for action in possible_actions(self.root):
-                self.children.append(game_tree(do_action_copied(self.root,action,self.next_turn),self.marker,self,action,self.next_turn*-1,self.ultimate))
-        if self.children:
-            return random.choice(self.children)
-        else:
-            return self
-    
-    def rollout(self,reward_of_state,possible_actions,do_action):
-        if self.ultimate:
-            tmp_state = [[j for j in i] for i in self.root]
-            if self.done_action:
-                act = possible_actions(tmp_state,self.done_action[1])
-            else:
-                act = possible_actions(tmp_state,None)
-        else:
-            tmp_state = [i for i in self.root]
-            act = possible_actions(tmp_state)
-
-
-        turn = self.next_turn
-        while reward_of_state(tmp_state,self.marker) == 0:
-            if act: 
-                chosen_action = random.choice(act)
-                tmp_state = do_action(tmp_state,chosen_action,turn)
-                turn *= -1
-            else:
-                break
-
-            if self.ultimate:
-                    act = possible_actions(tmp_state,chosen_action[1])
-            else:
-                act = possible_actions(tmp_state)
-
-        return reward_of_state(tmp_state,self.marker)
-
-    def backpropagation(self,result):
-        node = self
-        while node is not None:
-            node.visited += 1
-            node.value += result
-            node = node.parent
-
-    
-    
-
-def monte_carlo_tree_search(state,marker,reward_of_state,possible_actions,do_action,do_action_copied,max_time,ultimate,last_action):
-    root = game_tree(state,marker,None,last_action,marker,ultimate)
-    start = time.time()
-    while time.time() - start < max_time:
-        child = root.selection()
-        if child.visited == 0:
-            res = child.rollout(reward_of_state,possible_actions,do_action)
-            child.backpropagation(res)
-        else:
-            child = child.expansion(possible_actions,do_action_copied)
-            res = child.rollout(reward_of_state,possible_actions,do_action)
-            child.backpropagation(res)
-    print(root.visited)
-    return max(root.children, key = lambda c: c.visited).done_action
-
 }
