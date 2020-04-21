@@ -63,18 +63,6 @@ public class Zischelbot implements Bot {
             return best_child;
         }
 
-        private Board do_action_copied(Board board, Direction action, Snake player){
-            boolean grow = false;
-            Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
-            if(board.apple.equals(new_head)){
-                grow = true;
-            }
-            Snake moved_player = board.player.clone();
-            moved_player.moveTo(action, grow);
-            Board new_board = new Board(moved_player, board.opponent, board.maze_size, board.apple);
-            return new_board;
-        }
-
         private void do_action(Board board, Direction action, Snake player){
             boolean grow = false;
             Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
@@ -152,7 +140,9 @@ public class Zischelbot implements Bot {
             }
             else{
                 for (Direction d : valid_moves(this.root.player)) {
-                    Game_Tree tmp_tree = new Game_Tree(do_action_copied(this.root,d,this.root.player),this,this.turn*-1,d);
+                    Board tmp_board = this.root.copy();
+                    do_action(tmp_board,d,this.root.player);
+                    Game_Tree tmp_tree = new Game_Tree(tmp_board,this,this.turn*-1,d);
                     this.children.add(tmp_tree);
                 }
                 return children.get(0);
@@ -162,7 +152,8 @@ public class Zischelbot implements Bot {
 
         public int rollout(){
             int turn = this.turn;
-            Board board = this.root;
+            Board board = this.root.copy();
+            int i = 0;
             while(reward_for_board(board) == 0){
                 if(turn == 1){
                     Direction random_action = valid_moves(this.root.player)[(int)(Math.random()*3)];
@@ -173,6 +164,8 @@ public class Zischelbot implements Bot {
                     do_action(board,random_action,this.root.opponent); 
                 }
                 turn *= -1;
+                i++;
+                System.out.println(i);
             }
             return reward_for_board(board);
         }
@@ -212,7 +205,7 @@ public class Zischelbot implements Bot {
         Board root_board = new Board(snake,opponent,mazeSize,apple);
         Game_Tree root = new Game_Tree(root_board,null,1,null);
         long start = System.currentTimeMillis();
-        while(System.currentTimeMillis() - start < 800){
+        while(System.currentTimeMillis() - start < 8000){
             Game_Tree current = root.selection();
             if(current.visited == 0){
                 int result = current.rollout();
