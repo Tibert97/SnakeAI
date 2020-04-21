@@ -10,6 +10,8 @@ import snakes.Direction;
 import snakes.Snake;
 
 public class Zischelbot implements Bot {
+
+
     class Board{
         Snake player;
         Snake opponent;
@@ -50,6 +52,46 @@ public class Zischelbot implements Bot {
                 }
             }
             return best_child;
+        }
+
+        private Board do_action_copied(Board board, Direction action){
+            Snake player = board.player;
+            boolean grow = false;
+            Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
+            if(board.apple.equals(new_head)){
+                grow = true;
+            }
+            Snake moved_player = board.player.clone();
+            moved_player.moveTo(action, grow);
+            Board new_board = new Board(moved_player, board.opponent, board.maze_size, board.apple);
+        }
+
+        private int reward_for_board(Board board){
+            if(board.player.getHead().equals(board.apple))
+                return 1;
+            else if(is_dead(board))
+                return -1;
+            return 0;
+        }
+
+        private boolean is_dead(Board board){
+            Coordinate head = board.player.getHead();
+            if(!head.inBounds(board.maze_size)) //left the board
+                return true;
+            //collided with itself
+            for(Coordinate c : board.player.body){
+                if(c.equals(head))
+                    return true;
+            }
+            //collided with opponent
+            for(Coordinate c : board.opponent.body){
+                if(c.equals(head))
+                    return true;
+            }
+            //collided with opponents head
+            if(head.equals(board.opponent.getHead()))
+                return true;
+            return false;
         }
 
         private Direction[] valid_moves(Snake player){
