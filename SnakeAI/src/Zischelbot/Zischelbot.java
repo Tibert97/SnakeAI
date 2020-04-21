@@ -23,6 +23,15 @@ public class Zischelbot implements Bot {
             this.maze_size = maze_size;
             this.apple = apple;
         }
+
+        Board copy(){
+            Snake player = this.player.clone();
+            Snake opponent = this.opponent.clone();
+            Coordinate maze_size = new Coordinate(this.maze_size.x, this.maze_size.y);
+            Coordinate apple = new Coordinate(this.apple.x, this.apple.y);
+            Board new_board = new Board(player, opponent, maze_size, apple);
+            return new_board;
+        }
     }
     class Game_Tree{
         Board root;
