@@ -87,29 +87,37 @@ public class Zischelbot implements Bot {
         private double reward_for_board(Board board){
             if(board.player.getHead().equals(board.apple))
                 return 1;
-            else if(is_dead(board))
+            else if(is_dead(board, board.player))
                 return -1;
             else if(board.player.getHead().equals(board.opponent.getHead()))
                 return -0.1;
             else if(board.opponent.getHead().equals(board.apple))
                 return -0.5;
+            else if(is_dead(board, board.opponent))
+                return 1;
             return 0;
         }
 
-        private boolean is_dead(Board board){
-            Coordinate head = board.player.getHead();
+        private boolean is_dead(Board board, Snake player){
+            Coordinate head = player.getHead();
+            Snake opponent;
+            if(player.equals(board.player))
+                opponent = board.opponent;
+            else
+                opponent = board.player;
             if(!head.inBounds(board.maze_size)) //left the board
                 return true;
             //collided with itself
             boolean is_head = true;
-            for(Coordinate c : board.player.body){
+            for(Coordinate c : player.body){
                 if(c.equals(head) && !is_head)
                     return true;
                 is_head = false;
             }
             //collided with opponent
             is_head = true;
-            for(Coordinate c : board.opponent.body){
+            
+            for(Coordinate c : opponent.body){
                 if(c.equals(head) && !is_head)
                     return true;
                 is_head = false;
