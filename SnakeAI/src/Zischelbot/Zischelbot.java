@@ -9,11 +9,22 @@ import snakes.Coordinate;
 import snakes.Direction;
 import snakes.Snake;
 
-private Board do_action_copied(Board board, Direction action){
-    //TODO
-}
-
 public class Zischelbot implements Bot {
+
+    private Board do_action_copied(Board board, Direction action){
+        Snake player = board.player;
+        boolean grow = false;
+        Coordinate apple = new Coordinate(apple.x, apple.y);
+        Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
+        if(apple.equals(new_head)){
+            grow = true;
+            apple = null;
+        }
+        Snake moved_player = board.player.clone();
+        moved_player.moveTo(action, grow);
+        Board new_board = new Board(moved_player, board.opponent, board.maze_size, null);
+    }
+
     class Board{
         Snake player;
         Snake opponent;
