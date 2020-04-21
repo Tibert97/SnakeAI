@@ -9,10 +9,6 @@ import snakes.Coordinate;
 import snakes.Direction;
 import snakes.Snake;
 
-private Board do_action_copied(Board board, Direction action){
-    //TODO
-}
-
 public class Zischelbot implements Bot {
     class Board{
         Snake player;
@@ -121,76 +117,44 @@ public class Zischelbot implements Bot {
                 return this.value/this.visited + Math.sqrt(2)* Math.sqrt(Math.log(this.parent.visited)/this.visited);
             }
         }
+    }
 
-        public Direction monte_carlo_tree_search(Snake snake, Snake opponent, Coordinate mazeSize, Coordinate apple){
-            
-        }
-
-        def monte_carlo_tree_search(state,marker,reward_of_state,possible_actions,do_action,do_action_copied,max_time,ultimate,last_action):
-            root = game_tree(state,marker,None,last_action,marker,ultimate)
-            start = time.time()
-            while time.time() - start < max_time:
-                child = root.selection()
-                if child.visited == 0:
-                    res = child.rollout(reward_of_state,possible_actions,do_action)
-                    child.backpropagation(res)
-                else:
-                    child = child.expansion(possible_actions,do_action_copied)
-                    res = child.rollout(reward_of_state,possible_actions,do_action)
-                    child.backpropagation(res)
-            print(root.visited)
-            return max(root.children, key = lambda c: c.visited).done_action
 
     private static final Direction[] DIRECTIONS = new Direction[]{Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT};
 
     private double euclidian_distance(Coordinate a, Coordinate b){
         return Math.sqrt(Math.pow((a.x-b.x),2)+Math.pow((a.y-b.y),2));
     }
+
     @Override
     public Direction chooseDirection(Snake snake, Snake opponent, Coordinate mazeSize, Coordinate apple) {
-        Coordinate head = snake.getHead();
+        return monte_carlo_tree_search(snake, opponent, mazeSize, apple);
+    }
 
-        /* Get the coordinate of the second element of the snake's body
-         * to prevent going backwards */
-        Coordinate afterHeadNotFinal = null;
-        if (snake.body.size() >= 2) {
-            Iterator<Coordinate> it = snake.body.iterator();
-            it.next();
-            afterHeadNotFinal = it.next();
-        }
-
-        final Coordinate afterHead = afterHeadNotFinal;
-
-        /* The only illegal move is going backwards. Here we are checking for not doing it */
-        Direction[] validMoves = Arrays.stream(DIRECTIONS)
-                .filter(d -> !head.moveTo(d).equals(afterHead)) // Filter out the backwards move
-                .sorted()
-                .toArray(Direction[]::new);
-
-        /* Just naïve greedy algorithm that tries not to die at each moment in time */
-        Direction[] notLosing = Arrays.stream(validMoves)
-                .filter(d -> head.moveTo(d).inBounds(mazeSize))             // Don't leave maze
-                .filter(d -> !opponent.elements.contains(head.moveTo(d)))   // Don't collide with opponent...
-                .filter(d -> !snake.elements.contains(head.moveTo(d)))      // and yourself
-                .sorted()
-                .toArray(Direction[]::new);
-
-        if (notLosing.length > 1){
-            double min_distance = Double.POSITIVE_INFINITY;
-            Direction best_direction = null;
-            for(Direction d: notLosing){
-                double distance_to_apple = euclidian_distance(head.moveTo(d), apple);
-                if(distance_to_apple < min_distance){
-                    min_distance = distance_to_apple;
-                    best_direction = d;
-                }
+    public Direction monte_carlo_tree_search(Snake snake, Snake opponent, Coordinate mazeSize, Coordinate apple){
+        Board root_board = new Board(snake,opponent,mazeSize,apple);
+        Game_Tree root = new Game_Tree(root_board,null,1,null);
+        while(true){
+            Game_Tree current = root.selection();
+            if(current.visited == 0){
+                int result = current.rollout();
+                current.backpropagation(result);
             }
-            return best_direction;
+            else{
+                current.expansion();
+                int result = current.rollout();
+                current.backpropagation(result);
+            }
         }
-        else if(notLosing.length == 1){
-            return notLosing[0];
+
+        Direction best_move = null;
+        int highest_visit = 0;
+        for (Game_Tree child : root.children) {
+            if(child.visited > highest_visit){
+                best_move = child.last_action;
+                highest_visit = child.visited;
+            }
         }
-        else return validMoves[0];
-        /* Cannot avoid losing here */
+        return best_move;
     }
 }
