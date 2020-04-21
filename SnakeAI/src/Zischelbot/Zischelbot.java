@@ -66,16 +66,13 @@ public class Zischelbot implements Bot {
             return new_board;
         }
 
-        private Board do_action(Board board, Direction action, Snake player){
+        private void do_action(Board board, Direction action, Snake player){
             boolean grow = false;
             Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
             if(board.apple.equals(new_head)){
                 grow = true;
             }
-            Snake moved_player = board.player.clone();
-            moved_player.moveTo(action, grow);
-            Board new_board = new Board(moved_player, board.opponent, board.maze_size, board.apple);
-            return new_board;
+            board.player.moveTo(action, grow);
         }
 
         private int reward_for_board(Board board){
