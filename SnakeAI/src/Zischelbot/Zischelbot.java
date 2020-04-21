@@ -157,11 +157,11 @@ public class Zischelbot implements Bot {
             while(reward_for_board(board) == 0){
                 if(turn == 1){
                     Direction random_action = valid_moves(this.root.player)[(int)(Math.random()*3)];
-                    board = do_action_copied(board,random_action,this.root.player);
+                    do_action(board,random_action,this.root.player);
                 }
                 else{
                     Direction random_action = valid_moves(this.root.opponent)[(int)(Math.random()*3)];
-                    board = do_action_copied(board,random_action,this.root.opponent); 
+                    do_action(board,random_action,this.root.opponent); 
                 }
                 turn *= -1;
             }
@@ -203,7 +203,7 @@ public class Zischelbot implements Bot {
         Board root_board = new Board(snake,opponent,mazeSize,apple);
         Game_Tree root = new Game_Tree(root_board,null,1,null);
         long start = System.currentTimeMillis();
-        while(System.currentTimeMillis() - start < 80000){
+        while(System.currentTimeMillis() - start < 800){
             Game_Tree current = root.selection();
             if(current.visited == 0){
                 int result = current.rollout();
