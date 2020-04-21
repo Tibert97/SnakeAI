@@ -66,6 +66,18 @@ public class Zischelbot implements Bot {
             return new_board;
         }
 
+        private Board do_action(Board board, Direction action, Snake player){
+            boolean grow = false;
+            Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
+            if(board.apple.equals(new_head)){
+                grow = true;
+            }
+            Snake moved_player = board.player.clone();
+            moved_player.moveTo(action, grow);
+            Board new_board = new Board(moved_player, board.opponent, board.maze_size, board.apple);
+            return new_board;
+        }
+
         private int reward_for_board(Board board){
             if(board.player.getHead().equals(board.apple))
                 return 1;
@@ -79,9 +91,11 @@ public class Zischelbot implements Bot {
             if(!head.inBounds(board.maze_size)) //left the board
                 return true;
             //collided with itself
+            boolean is_head = true;
             for(Coordinate c : board.player.body){
-                if(c.equals(head))
+                if(c.equals(head) && !is_head)
                     return true;
+                is_head = false;
             }
             //collided with opponent
             for(Coordinate c : board.opponent.body){
@@ -127,12 +141,17 @@ public class Zischelbot implements Bot {
 
         public Game_Tree expansion(){
             this.children = new ArrayList<Game_Tree>();
-            for (Direction d : valid_moves(this.root.player)) {
-                Game_Tree tmp_tree = new Game_Tree(do_action_copied(this.root,d,this.root.player),this,this.turn*-1,d);
-                this.children.add(tmp_tree);
+            if(reward_for_board(this.root) != 0){
+                return null;
             }
-            return children.get(0);
+            else{
+                for (Direction d : valid_moves(this.root.player)) {
+                    Game_Tree tmp_tree = new Game_Tree(do_action_copied(this.root,d,this.root.player),this,this.turn*-1,d);
+                    this.children.add(tmp_tree);
+                }
+                return children.get(0);
 
+            }
         }
 
         public int rollout(){
@@ -187,14 +206,17 @@ public class Zischelbot implements Bot {
         Board root_board = new Board(snake,opponent,mazeSize,apple);
         Game_Tree root = new Game_Tree(root_board,null,1,null);
         long start = System.currentTimeMillis();
-        while(System.currentTimeMillis() - start < 800){
+        while(System.currentTimeMillis() - start < 80000){
             Game_Tree current = root.selection();
             if(current.visited == 0){
                 int result = current.rollout();
                 current.backpropagation(result);
             }
             else{
-                current = current.expansion();
+                Game_Tree tmp = current.expansion();
+                if(tmp != null){
+                    current = tmp;
+                }
                 int result = current.rollout();
                 current.backpropagation(result);
             }
