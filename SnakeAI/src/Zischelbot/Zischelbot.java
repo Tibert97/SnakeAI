@@ -54,8 +54,7 @@ public class Zischelbot implements Bot {
             return best_child;
         }
 
-        private Board do_action_copied(Board board, Direction action){
-            Snake player = board.player;
+        private Board do_action_copied(Board board, Direction action, Snake player){
             boolean grow = false;
             Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
             if(board.apple.equals(new_head)){
@@ -64,6 +63,7 @@ public class Zischelbot implements Bot {
             Snake moved_player = board.player.clone();
             moved_player.moveTo(action, grow);
             Board new_board = new Board(moved_player, board.opponent, board.maze_size, board.apple);
+            return new_board;
         }
 
         private int reward_for_board(Board board){
@@ -113,7 +113,9 @@ public class Zischelbot implements Bot {
                     .filter(d -> !head.moveTo(d).equals(afterHead)) // Filter out the backwards move
                     .sorted()
                     .toArray(Direction[]::new);
+            return validMoves;
         }
+
 
         public Game_Tree selection(){
             Game_Tree selected_node = this;
@@ -126,7 +128,7 @@ public class Zischelbot implements Bot {
         public void expansion(){
             this.children = new ArrayList<Game_Tree>();
             for (Direction d : valid_moves(this.root.player)) {
-                Game_Tree tmp_tree = new Game_Tree(do_action_copied(this.root,d),this,this.turn*-1,d);
+                Game_Tree tmp_tree = new Game_Tree(do_action_copied(this.root,d,this.root.player),this,this.turn*-1,d);
                 this.children.add(tmp_tree);
             }
 
@@ -135,11 +137,18 @@ public class Zischelbot implements Bot {
         public int rollout(){
             int turn = this.turn;
             Board board = this.root;
-            while(reward_of_state(board) == 0){
-                Direction random_action = valid_moves(this.root.player)[(int)(Math.random()*3)];
-                board = do_action(board,random_action);
+            while(reward_for_board(board) == 0){
+                if(turn == 1){
+                    Direction random_action = valid_moves(this.root.player)[(int)(Math.random()*3)];
+                    board = do_action_copied(board,random_action,this.root.player);
+                }
+                else{
+                    Direction random_action = valid_moves(this.root.opponent)[(int)(Math.random()*3)];
+                    board = do_action_copied(board,random_action,this.root.opponent); 
+                }
+                turn *= -1;
             }
-            return reward_of_state(board,this.root.player);
+            return reward_for_board(board);
         }
 
         public void backpropagation(int reward){
@@ -176,7 +185,8 @@ public class Zischelbot implements Bot {
     public Direction monte_carlo_tree_search(Snake snake, Snake opponent, Coordinate mazeSize, Coordinate apple){
         Board root_board = new Board(snake,opponent,mazeSize,apple);
         Game_Tree root = new Game_Tree(root_board,null,1,null);
-        while(true){
+        long start = System.currentTimeMillis();
+        while(start - System.currentTimeMillis() > 0.7){
             Game_Tree current = root.selection();
             if(current.visited == 0){
                 int result = current.rollout();
