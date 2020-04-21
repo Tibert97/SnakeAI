@@ -72,11 +72,15 @@ public class Zischelbot implements Bot {
             board.player.moveTo(action, grow);
         }
 
-        private int reward_for_board(Board board){
+        private double reward_for_board(Board board){
             if(board.player.getHead().equals(board.apple))
                 return 1;
             else if(is_dead(board))
                 return -1;
+            else if(board.player.getHead().equals(board.opponent.getHead()))
+                return -0.1;
+            else if(board.opponent.getHead().equals(board.apple))
+                return -0.5;
             return 0;
         }
 
@@ -92,13 +96,12 @@ public class Zischelbot implements Bot {
                 is_head = false;
             }
             //collided with opponent
+            is_head = true;
             for(Coordinate c : board.opponent.body){
-                if(c.equals(head))
+                if(c.equals(head) && !is_head)
                     return true;
+                is_head = false;
             }
-            //collided with opponents head
-            if(head.equals(board.opponent.getHead()))
-                return true;
             return false;
         }
 
@@ -150,7 +153,7 @@ public class Zischelbot implements Bot {
             }
         }
 
-        public int rollout(){
+        public double rollout(){
             int turn = this.turn;
             Board board = this.root.copy();
             int i = 0;
@@ -170,7 +173,7 @@ public class Zischelbot implements Bot {
             return reward_for_board(board);
         }
 
-        public void backpropagation(int reward){
+        public void backpropagation(double reward){
             Game_Tree current = this;
             while(current != null){
                 current.visited += 1;
@@ -208,7 +211,7 @@ public class Zischelbot implements Bot {
         while(System.currentTimeMillis() - start < 8000){
             Game_Tree current = root.selection();
             if(current.visited == 0){
-                int result = current.rollout();
+                double result = current.rollout();
                 current.backpropagation(result);
             }
             else{
@@ -216,7 +219,7 @@ public class Zischelbot implements Bot {
                 if(tmp != null){
                     current = tmp;
                 }
-                int result = current.rollout();
+                double result = current.rollout();
                 current.backpropagation(result);
             }
         }
