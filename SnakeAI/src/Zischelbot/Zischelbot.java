@@ -51,15 +51,7 @@ public class Zischelbot implements Bot {
                     .filter(d -> head.moveTo(d).equals(afterHead)) // Filter out the backwards move
                     .sorted()
                     .toArray(Direction[]::new);
-            if (validMoves[0] == Direction.UP){
-                return Direction.DOWN;
-            }
-            else if(validMoves[0] == Direction.DOWN){
-                return Direction.UP;
-            }
-            else{
-                return validMoves[0];
-            }
+            return backwards_direction(validMoves[0]);
         }
 
         Board copy(){
@@ -119,8 +111,8 @@ public class Zischelbot implements Bot {
         Board root;
         Game_Tree parent;
         ArrayList<Game_Tree> children;
-        int visited;
-        int value;
+        double visited;
+        double value;
         Direction last_action;
         int turn;
         public Game_Tree(Board board, Game_Tree parent, int turn, Direction last_action){
@@ -134,8 +126,8 @@ public class Zischelbot implements Bot {
         }
 
         private Game_Tree maximum_upper_confidence_bound(ArrayList<Game_Tree> children){
-            double upper_confidence_bound = 0;
-            Game_Tree best_child = children.get(0);
+            double upper_confidence_bound = Double.NEGATIVE_INFINITY;
+            Game_Tree best_child = null;
             for (Game_Tree child : children) {
                 double tmp = child.upper_confidence_bound();
                 if(tmp > upper_confidence_bound){
@@ -288,7 +280,10 @@ public class Zischelbot implements Bot {
                 return Double.POSITIVE_INFINITY;
             }
             else{
-                return (-1*this.turn*this.value)/this.visited + Math.sqrt(2)* Math.sqrt(Math.log(this.parent.visited)/this.visited);
+                double average_value = (-1*this.turn*this.value)/this.visited;
+                double exploration_constant = Math.sqrt(2);
+                double exploration = Math.sqrt(Math.log(this.parent.visited)/this.visited);
+                return  average_value+(exploration_constant*exploration);
             }
         }
     }
@@ -324,13 +319,14 @@ public class Zischelbot implements Bot {
         }
 
         Direction best_move = null;
-        int highest_visit = 0;
+        double highest_visit = 0;
         for (Game_Tree child : root.children) {
             if(child.visited > highest_visit){
                 best_move = child.last_action;
                 highest_visit = child.visited;
             }
         }
+        Game_Tree tmp = root.selection();
         return best_move;
     }
 }
