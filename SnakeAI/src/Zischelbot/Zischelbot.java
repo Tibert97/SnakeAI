@@ -146,14 +146,14 @@ public class Zischelbot implements Bot {
             return best_child;
         }
 
-        private boolean do_action(Board board, Direction action, Snake player){
+        private boolean do_action(Board board, Direction action, Snake moved_snake){
             boolean grow = false;
-            Coordinate new_head = new Coordinate(player.getHead().x+action.dx, player.getHead().y+action.dy);
+            Coordinate new_head = new Coordinate(moved_snake.getHead().x+action.dx, moved_snake.getHead().y+action.dy);
             if(board.apple.equals(new_head)){
                 grow = true;
             }
-            boolean res = board.player.moveTo(action, grow);
-            board.set_last_move(player, action);
+            boolean res = moved_snake.moveTo(action, grow);
+            board.set_last_move(moved_snake, action);
             return res;
         }
 
@@ -166,37 +166,29 @@ public class Zischelbot implements Bot {
             }
             else if(board.player.getHead().equals(board.apple))
                 return 1;
-            else if(is_dead(board, board.player))
+            else if(is_dead(board))
                 return -1;
             else if(board.player.getHead().equals(board.opponent.getHead()))
                 return -0.1;
             else if(board.opponent.getHead().equals(board.apple))
                 return -0.5;
-            else if(is_dead(board, board.opponent))
-                return 1;
             return 0;
         }
 
-        private boolean is_dead(Board board, Snake player){
-            Coordinate head = player.getHead();
-            Snake opponent;
-            if(player.equals(board.player))
-                opponent = board.opponent;
-            else
-                opponent = board.player;
+        private boolean is_dead(Board board){
+            Coordinate head = board.player.getHead();
             if(!head.inBounds(board.maze_size)) //left the board
                 return true;
             //collided with itself
             boolean is_head = true;
-            for(Coordinate c : player.body){
+            for(Coordinate c : board.player.body){
                 if(c.equals(head) && !is_head)
                     return true;
                 is_head = false;
             }
             //collided with opponent
             is_head = true;
-            
-            for(Coordinate c : opponent.body){
+            for(Coordinate c : board.opponent.body){
                 if(c.equals(head) && !is_head)
                     return true;
                 is_head = false;
@@ -218,19 +210,39 @@ public class Zischelbot implements Bot {
             }
             else{
                 this.children = new ArrayList<Game_Tree>();
-                for (Direction d : this.root.valid_moves(this.root.player)) {
-                    Board tmp_board = this.root.copy();
-                    boolean res = do_action(tmp_board,d,this.root.player);
-                    Game_Tree tmp_tree = new Game_Tree(tmp_board,this,this.turn*-1,d);
-                    if(res == false){
-                        if(turn == 1){
-                            tmp_board.player_died = true;
+                if(this.turn == 1){
+                    for (Direction d : this.root.valid_moves(this.root.player)) {
+                        Board tmp_board = this.root.copy();
+                        tmp_board.player_last_move = d;
+                        boolean res = do_action(tmp_board,d,tmp_board.player);
+                        Game_Tree tmp_tree = new Game_Tree(tmp_board,this,this.turn*-1,d);
+                        if(res == false){
+                            if(turn == 1){
+                                tmp_board.player_died = true;
+                            }
+                            else{
+                                tmp_board.opponent_died = true;
+                            }
                         }
-                        else{
-                            tmp_board.opponent_died = true;
-                        }
+                        this.children.add(tmp_tree);
                     }
-                    this.children.add(tmp_tree);
+                }
+                else{
+                    for (Direction d : this.root.valid_moves(this.root.opponent)) {
+                        Board tmp_board = this.root.copy();
+                        boolean res = do_action(tmp_board,d,tmp_board.opponent);
+                        Game_Tree tmp_tree = new Game_Tree(tmp_board,this,this.turn*-1,d);
+                        tmp_board.opponent_last_move = d;
+                        if(res == false){
+                            if(turn == 1){
+                                tmp_board.player_died = true;
+                            }
+                            else{
+                                tmp_board.opponent_died = true;
+                            }
+                        }
+                        this.children.add(tmp_tree);
+                    }
                 }
                 return children.get((int)(Math.random()*children.size()));
 
@@ -319,7 +331,6 @@ public class Zischelbot implements Bot {
                 highest_visit = child.visited;
             }
         }
-        root.selection();
         return best_move;
     }
 }
