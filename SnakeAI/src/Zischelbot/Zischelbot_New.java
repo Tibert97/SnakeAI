@@ -9,7 +9,7 @@ import snakes.Coordinate;
 import snakes.Direction;
 import snakes.Snake;
 
-public class Zischelbot implements Bot {
+public class Zischelbot_New implements Bot {
     public static final Direction[] DIRECTIONS = new Direction[]{Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT};
     class Board{
         Snake player;
@@ -173,8 +173,8 @@ public class Zischelbot implements Bot {
                 }
             }
             else if(board.opponent.getHead().equals(board.apple)){
-                Coordinate mid_board = new Coordinate((int) (board.maze_size.x/2),(int)( board.maze_size.y/2));
-                return -1 + distance_function(board.player.getHead(),mid_board);
+                Coordinate random_apple = new Coordinate((int) (board.maze_size.x*Math.random()),(int)( board.maze_size.y*Math.random()));
+                return -1 + distance_function(board.player.getHead(),random_apple);
             }
             return 0;
         }
