@@ -34,7 +34,7 @@ public class SnakesUIMain {
         bots.add(loader.getBotClass(args[0]));
         bots.add(loader.getBotClass(args[1]));
 
-        start_tournament_n_times(10, bots);
+        start_tournament_n_times(5, bots);
     }
 
     /**

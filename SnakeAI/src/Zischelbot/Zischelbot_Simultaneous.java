@@ -296,7 +296,7 @@ public class Zischelbot_Simultaneous implements Bot {
             Board board = this.root.copy();
             while(reward_for_board(board) == 0){
                 if(turn == 1){
-                    Direction random_action = board.valid_moves(board.player)[(int)(Math.random()*3)];
+                    Direction random_action = random_greedy_action(board.player, board.opponent, board.valid_moves(board.player), board);
                     boolean res = do_action(board,random_action,board.player);
                     if(!res){
                         board.player_died = true;
@@ -308,7 +308,7 @@ public class Zischelbot_Simultaneous implements Bot {
                     //System.out.println("Your action" + random_action);
                 }
                 else{
-                    Direction random_action = board.valid_moves(board.opponent)[(int)(Math.random()*3)];
+                    Direction random_action = random_greedy_action(board.opponent, board.player, board.valid_moves(board.player), board);
                     boolean res = do_action(board,random_action,board.opponent); 
                     if(!res){
                        board.opponent_died = true;
@@ -322,6 +322,23 @@ public class Zischelbot_Simultaneous implements Bot {
             }
             return reward_for_board(board);
         }
+
+        private Direction random_greedy_action(Snake snake, Snake opponent, Direction[] actions, Board board){
+            Coordinate head = snake.getHead();
+            /* Just naïve greedy algorithm that tries not to die at each moment in time */
+            Direction[] notLosing = Arrays.stream(actions)
+            .filter(d -> head.moveTo(d).inBounds(board.maze_size))             // Don't leave maze
+            .filter(d -> !opponent.elements.contains(head.moveTo(d)))   // Don't collide with opponent...
+            .filter(d -> !snake.elements.contains(head.moveTo(d)))      // and yourself
+            .sorted()
+            .toArray(Direction[]::new);
+
+        if (notLosing.length >= 1){
+            return notLosing[(int)(Math.random()*notLosing.length)];
+        }
+        else return actions[0];
+        /* Cannot avoid losing here */
+        }   
 
         public void backpropagation(double reward){
             Game_Tree current = this;
@@ -378,6 +395,20 @@ public class Zischelbot_Simultaneous implements Bot {
                 highest_visit = child.visited;
             }
         }
+        
+        Game_Tree current = root.selection();
+        if(current.visited == 0){
+            double result = current.rollout();
+            current.backpropagation(result);
+        }
+        else{
+            Game_Tree tmp = current.expansion();
+            if(tmp != null){
+                current = tmp;
+            }
+            double result = current.rollout();
+        }   
+
         return best_move;
         
     }

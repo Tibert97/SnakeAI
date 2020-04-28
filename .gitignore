@@ -13,6 +13,5 @@ SnakeAI/bin/snakes/SnakesUIMain.class
 SnakeAI/bin/Zischelbot/Zischelbot.class
 SnakeAI/bin/Zischelbot/Zischelbot$Game_Tree.class
 .vscode/launch.json
-.vscode/launch.json
-SnakeAI/src/snakes/SnakesUIMain.java
 SnakeAI/src/snakes/SnakeGame.java
+.vscode/launch.json
