@@ -9,7 +9,7 @@
             "name": "Debug (Launch) - Current File",
             "request": "launch",
             "mainClass": "${file}",
-            "args": "Zischelbot.Zischelbot Zischelbot.Zischelbot_easy"
+            "args": "Zischelbot.Zischelbot Zischelbot.Zischelbot2"
         },
         {
             "type": "java",
@@ -17,7 +17,7 @@
             "request": "launch",
             "mainClass": "snakes.SnakesUIMain",
             "projectName": "SnakeAI",
-            "args": "Zischelbot.Zischelbot Zischelbot.Zischelbot_New"
+            "args": "Zischelbot.Zischelbot Zischelbot.Zischelbot2"
         }
     ]
 }

@@ -9,7 +9,7 @@ import snakes.Coordinate;
 import snakes.Direction;
 import snakes.Snake;
 
-public class Zischelbot_New implements Bot {
+public class Zischelbot_Deep implements Bot {
     public static final Direction[] DIRECTIONS = new Direction[]{Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT};
     class Board{
         Snake player;
@@ -150,43 +150,31 @@ public class Zischelbot_New implements Bot {
         }
 
         private double reward_for_board(Board board){
-            if(board.player_died){
-                return -1;
-            }
-            else if(board.opponent_died){
-                return 1;
-            }
-            else if(board.player.getHead().equals(board.apple))
-                return 1;
-            else if(is_dead(board))
-                return -1;
-            else if(board.player.getHead().equals(board.opponent.getHead())){
+            if(board.player.getHead().equals(board.opponent.getHead())){
                 if(board.player.body.size() > board.opponent.body.size()){
                     return 1;
                 }
                 //-1 to account for non-simultanious movement
-                else if(board.player.body.size()-1 < board.opponent.body.size()){
+                else if(board.player.body.size() < board.opponent.body.size()){
                     return -1;
                 }
                 else{
                     return -0.000000001;
                 }
             }
-            else if(board.opponent.getHead().equals(board.apple)){
-                Coordinate random_apple = new Coordinate((int) (board.maze_size.x*Math.random()),(int)( board.maze_size.y*Math.random()));
-                return -1 + distance_function(board.player.getHead(),random_apple);
+            else if(board.player_died){
+                return -1;
+            }
+            else if(board.opponent_died){
+                return 1;
             }
             return 0;
         }
 
-        private double distance_function(Coordinate a, Coordinate b){
+        private double distance_function(Coordinate a, Coordinate b, Board board){
             double distance = Math.sqrt(Math.pow((a.x-b.x),2)+Math.pow((a.y-b.y),2));
-            if(distance == 0){
-                return 1;
-            }
-            else{
-                return 1/distance;
-            }
+            double max_distance = Math.sqrt(Math.pow((0-board.maze_size.x),2)+Math.pow((0-board.maze_size.y),2));
+            return 1-distance/max_distance;
         }
 
         private boolean is_dead(Board board){
@@ -266,7 +254,9 @@ public class Zischelbot_New implements Bot {
         public double rollout(){
             int turn = this.turn;
             Board board = this.root.copy();
-            while(reward_for_board(board) == 0){
+            int max_rollout_depth = 1000;
+            int i = 0;
+            while(reward_for_board(board) == 0 && i < max_rollout_depth){
                 if(turn == 1){
                     Direction random_action = board.valid_moves(board.player)[(int)(Math.random()*3)];
                     boolean res = do_action(board,random_action,board.player);
@@ -284,6 +274,16 @@ public class Zischelbot_New implements Bot {
                     //System.out.println("Their action" + random_action);
                 }
                 turn *= -1;
+                i++;
+            }
+            if(i == max_rollout_depth){
+                if(board.player.body.size() < board.opponent.body.size()){
+                    return -1*turn;
+                }
+                else if(board.player.body.size() > board.opponent.body.size()){
+                    return 1*turn;
+                }
+                return -0.01*turn;
             }
             return reward_for_board(board);
         }

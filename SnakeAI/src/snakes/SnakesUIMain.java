@@ -34,7 +34,7 @@ public class SnakesUIMain {
         bots.add(loader.getBotClass(args[0]));
         bots.add(loader.getBotClass(args[1]));
 
-        start_tournament_n_times(5, bots);
+        start_tournament_n_times(10, bots);
     }
 
     /**
@@ -79,7 +79,7 @@ public class SnakesUIMain {
         Coordinate mazeSize = new Coordinate(14, 14);
         Coordinate head0 = new Coordinate(2, 2);
         Direction tailDirection0 = Direction.DOWN;
-        Coordinate head1 = new Coordinate(5, 5);
+        Coordinate head1 = new Coordinate(11, 11);
         Direction tailDirection1 = Direction.UP;
         int snakeSize = 3;
 
