@@ -150,7 +150,38 @@ public class Zischelbot implements Bot {
         }
 
         private double reward_for_board(Board board){
-            if(board.player.getHead().equals(board.opponent.getHead())){
+            if(board.player_died){
+                return -1;
+            }
+            else if(board.opponent_died){
+                return 1;
+            }
+            else if(board.player.getHead().equals(board.apple)){
+                Direction collision = simultaneous_check(board);
+                if(collision != null){
+                    if(board.player.body.size()-1 > board.opponent.body.size()){
+                        if(do_x_moves(board, 5, true)){
+                            return 1;
+                        }
+                        else{
+                            return -1;
+                        }
+                    }
+                    else if(board.player.body.size()-1 < board.opponent.body.size()){
+                        return -1;
+                    }
+                    else{
+                        return -0.000000001;
+                    }
+                }
+                return 1;
+            }
+            else if(board.opponent.getHead().equals(board.apple)){
+                Coordinate mid_board = new Coordinate((int) (board.maze_size.x/2),(int)( board.maze_size.y/2));
+                return -1 + distance_function(board.player.getHead(),mid_board, board);
+            }
+            Direction collision = simultaneous_check(board);
+            if(collision != null){
                 if(board.player.body.size() > board.opponent.body.size()){
                     return 1;
                 }
@@ -162,22 +193,41 @@ public class Zischelbot implements Bot {
                     return -0.000000001;
                 }
             }
-            else if(board.player_died){
-                return -1;
-            }
-            else if(board.opponent_died){
-                return 1;
-            }
-            else if(board.player.getHead().equals(board.apple))
-                return 1;
-            else if(is_dead(board))
-                return -1;
-            
-            else if(board.opponent.getHead().equals(board.apple)){
-                Coordinate mid_board = new Coordinate((int) (board.maze_size.x/2),(int)( board.maze_size.y/2));
-                return -1 + distance_function(board.player.getHead(),mid_board, board);
-            }
             return 0;
+        }
+
+        private boolean do_x_moves(Board board, int x, boolean player){
+            Board tmp_board = board.copy();
+            Game_Tree tree = new Game_Tree(tmp_board, null, 1, null);
+            Snake snake_1;
+            Snake snake_2;
+            if(player){
+                snake_1 = board.player;
+                snake_2 = board.opponent;
+            }
+            else{
+                snake_1 = board.opponent;
+                snake_2 = board.player;
+            }
+            for(int i = 0; i < x; i++){
+                boolean res = tree.do_action(tmp_board, tree.random_greedy_action(snake_1, snake_2, tmp_board.valid_moves(snake_1), tmp_board), snake_1);
+                if(!res){
+                    return false;
+                }
+                else{
+                    tree.do_action(tmp_board, tree.random_greedy_action(snake_2, snake_1, tmp_board.valid_moves(snake_2), tmp_board), snake_2);
+                }
+            }
+            return true;
+        }
+
+        private Direction simultaneous_check(Board board){
+            for (Direction direction : board.valid_moves(board.opponent)) {
+                if(board.opponent.getHead().moveTo(direction).equals(board.player.getHead())){
+                    return direction;
+                }
+            }
+            return null;
         }
 
         private double distance_function(Coordinate a, Coordinate b, Board board){
@@ -228,12 +278,10 @@ public class Zischelbot implements Bot {
                         boolean res = do_action(tmp_board,d,tmp_board.player);
                         Game_Tree tmp_tree = new Game_Tree(tmp_board,this,this.turn*-1,d);
                         if(res == false){
-                            if(turn == 1){
-                                tmp_board.player_died = true;
-                            }
-                            else{
-                                tmp_board.opponent_died = true;
-                            }
+                             tmp_board.player_died = true;
+                        }
+                        else if(tmp_board.player.headCollidesWith(tmp_board.opponent)){
+                            tmp_board.player_died = true;
                         }
                         this.children.add(tmp_tree);
                     }
@@ -245,12 +293,10 @@ public class Zischelbot implements Bot {
                         Game_Tree tmp_tree = new Game_Tree(tmp_board,this,this.turn*-1,d);
                         tmp_board.opponent_last_move = d;
                         if(res == false){
-                            if(turn == 1){
-                                tmp_board.player_died = true;
-                            }
-                            else{
-                                tmp_board.opponent_died = true;
-                            }
+                            tmp_board.opponent_died = true;
+                        }
+                        else if(tmp_board.opponent.headCollidesWith(tmp_board.player)){
+                            tmp_board.opponent_died = true;
                         }
                         this.children.add(tmp_tree);
                     }
@@ -270,13 +316,20 @@ public class Zischelbot implements Bot {
                     if(!res){
                         board.player_died = true;
                     }
+                    else if(board.player.headCollidesWith(board.opponent)){
+                        board.player_died = true;
+                    }
+
                     //System.out.println("Your action" + random_action);
                 }
                 else{
-                    Direction random_action = random_greedy_action(board.opponent, board.player, board.valid_moves(board.player), board);
+                    Direction random_action = random_greedy_action(board.opponent, board.player, board.valid_moves(board.opponent), board);
                     boolean res = do_action(board,random_action,board.opponent); 
                     if(!res){
                        board.opponent_died = true;
+                    }
+                    else if(board.opponent.headCollidesWith(board.player)){
+                        board.opponent_died = true;
                     }
                     //System.out.println("Their action" + random_action);
                 }
@@ -300,7 +353,7 @@ public class Zischelbot implements Bot {
         }
         else return actions[0];
         /* Cannot avoid losing here */
-    }
+        }   
 
         public void backpropagation(double reward){
             Game_Tree current = this;
@@ -356,18 +409,6 @@ public class Zischelbot implements Bot {
                 best_move = child.last_action;
                 highest_visit = child.visited;
             }
-        }
-        Game_Tree current = root.selection();
-        if(current.visited == 0){
-            double result = current.rollout();
-            current.backpropagation(result);
-        }
-        else{
-            Game_Tree tmp = current.expansion();
-            if(tmp != null){
-                current = tmp;
-            }
-            double result = current.rollout();
         }
         return best_move;
         

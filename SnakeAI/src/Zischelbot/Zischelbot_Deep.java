@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import java.util.Random;
+
 import snakes.Bot;
 import snakes.Coordinate;
 import snakes.Direction;
@@ -20,6 +22,9 @@ public class Zischelbot_Deep implements Bot {
         Coordinate apple;
         boolean player_died;
         boolean opponent_died;
+        
+        private final Random rnd = new Random();
+
         public Board(Snake player, Snake opponent, Coordinate maze_size, Coordinate apple){
             this.player = player;
             this.opponent = opponent;
@@ -66,6 +71,19 @@ public class Zischelbot_Deep implements Bot {
             new_board.opponent_died = this.opponent_died;
             return new_board;
         }
+
+        private Coordinate randomNonOccupiedCell() {
+            while (true) {
+                Coordinate c = new Coordinate(rnd.nextInt(this.maze_size.x), rnd.nextInt(this.maze_size.y));
+                if (this.player.elements.contains(c))
+                    continue;
+                if (this.opponent.elements.contains(c))
+                    continue;
+    
+                return c;
+            }
+        }
+
         public void set_last_move(Snake snake, Direction action){
             if(snake == player){
                 this.player_last_move = action;
@@ -143,11 +161,13 @@ public class Zischelbot_Deep implements Bot {
             Coordinate new_head = new Coordinate(moved_snake.getHead().x+action.dx, moved_snake.getHead().y+action.dy);
             if(board.apple.equals(new_head)){
                 grow = true;
+                board.apple = board.randomNonOccupiedCell();
             }
             boolean res = moved_snake.moveTo(action, grow);
             board.set_last_move(moved_snake, action);
             return res;
         }
+
 
         private double reward_for_board(Board board){
             if(board.player.getHead().equals(board.opponent.getHead())){
@@ -247,18 +267,17 @@ public class Zischelbot_Deep implements Bot {
                     }
                 }
                 return children.get((int)(Math.random()*children.size()));
-
             }
         }
 
         public double rollout(){
             int turn = this.turn;
             Board board = this.root.copy();
-            int max_rollout_depth = 1000;
+            int max_rollout_depth = 100;
             int i = 0;
             while(reward_for_board(board) == 0 && i < max_rollout_depth){
                 if(turn == 1){
-                    Direction random_action = board.valid_moves(board.player)[(int)(Math.random()*3)];
+                    Direction random_action = random_greedy_action(board.player, board.opponent, board.valid_moves(board.player), board);
                     boolean res = do_action(board,random_action,board.player);
                     if(!res){
                         board.player_died = true;
@@ -266,7 +285,7 @@ public class Zischelbot_Deep implements Bot {
                     //System.out.println("Your action" + random_action);
                 }
                 else{
-                    Direction random_action = board.valid_moves(board.opponent)[(int)(Math.random()*3)];
+                    Direction random_action = greedy_distance_action(board.opponent, board.player, board.valid_moves(board.opponent), board);
                     boolean res = do_action(board,random_action,board.opponent); 
                     if(!res){
                        board.opponent_died = true;
@@ -278,14 +297,82 @@ public class Zischelbot_Deep implements Bot {
             }
             if(i == max_rollout_depth){
                 if(board.player.body.size() < board.opponent.body.size()){
-                    return -1*turn;
+                    return -1;
                 }
                 else if(board.player.body.size() > board.opponent.body.size()){
-                    return 1*turn;
+                    return 1;
                 }
-                return -0.01*turn;
+                return -0.01;
             }
             return reward_for_board(board);
+        }
+
+        private Direction random_greedy_action(Snake snake, Snake opponent, Direction[] actions, Board board){
+            Coordinate head = snake.getHead();
+            /* Just naïve greedy algorithm that tries not to die at each moment in time */
+            Direction[] notLosing = Arrays.stream(actions)
+            .filter(d -> head.moveTo(d).inBounds(board.maze_size))             // Don't leave maze
+            .filter(d -> !opponent.elements.contains(head.moveTo(d)))   // Don't collide with opponent...
+            .filter(d -> !snake.elements.contains(head.moveTo(d)))      // and yourself
+            .sorted()
+            .toArray(Direction[]::new);
+
+        if (notLosing.length >= 1){
+            return notLosing[(int)(Math.random()*notLosing.length)];
+        }
+        else return actions[0];
+        /* Cannot avoid losing here */
+        }   
+
+        private Direction greedy_distance_action(Snake snake, Snake opponent, Direction[] actions, Board board){
+            Coordinate head = snake.getHead();
+
+            /* Get the coordinate of the second element of the snake's body
+             * to prevent going backwards */
+            Coordinate afterHeadNotFinal = null;
+            if (snake.body.size() >= 2) {
+                Iterator<Coordinate> it = snake.body.iterator();
+                it.next();
+                afterHeadNotFinal = it.next();
+            }
+    
+            final Coordinate afterHead = afterHeadNotFinal;
+    
+            /* The only illegal move is going backwards. Here we are checking for not doing it */
+            Direction[] validMoves = Arrays.stream(actions)
+                    .filter(d -> !head.moveTo(d).equals(afterHead)) // Filter out the backwards move
+                    .sorted()
+                    .toArray(Direction[]::new);
+    
+            /* Just naïve greedy algorithm that tries not to die at each moment in time */
+            Direction[] notLosing = Arrays.stream(validMoves)
+                    .filter(d -> head.moveTo(d).inBounds(board.maze_size))             // Don't leave maze
+                    .filter(d -> !opponent.elements.contains(head.moveTo(d)))   // Don't collide with opponent...
+                    .filter(d -> !snake.elements.contains(head.moveTo(d)))      // and yourself
+                    .sorted()
+                    .toArray(Direction[]::new);
+    
+            if (notLosing.length > 1){
+                double min_distance = Double.POSITIVE_INFINITY;
+                Direction best_direction = null;
+                for(Direction d: notLosing){
+                    double distance_to_apple = euclidian_distance(head.moveTo(d), board.apple);
+                    if(distance_to_apple < min_distance){
+                        min_distance = distance_to_apple;
+                        best_direction = d;
+                    }
+                }
+                return best_direction;
+            }
+            else if(notLosing.length == 1){
+                return notLosing[0];
+            }
+            else return validMoves[0];
+            /* Cannot avoid losing here */
+        }
+
+        private double euclidian_distance(Coordinate a, Coordinate b){
+            return Math.sqrt(Math.pow((a.x-b.x),2)+Math.pow((a.y-b.y),2));
         }
 
         public void backpropagation(double reward){
@@ -343,6 +430,18 @@ public class Zischelbot_Deep implements Bot {
                 highest_visit = child.visited;
             }
         }
+        Game_Tree current = root.selection();
+        if(current.visited == 0){
+            double result = current.rollout();
+            current.backpropagation(result);
+        }
+        else{
+            Game_Tree tmp = current.expansion();
+            if(tmp != null){
+                current = tmp;
+            }
+            double result = current.rollout();
+        }   
         return best_move;
     }
 }
